@@ -209,15 +209,25 @@ FlyerTrack/
 │   │   │   └── rrppController.js    # Promoter & group CRUD
 │   │   ├── middleware/
 │   │   │   └── auth.js              # JWT verification & role guards
-│   │   ├── routes/                  # One Express router per resource
+│   │   ├── routes/
+│   │   │   ├── auth.js
+│   │   │   ├── eventos.js
+│   │   │   ├── flyer.js
+│   │   │   ├── informes.js
+│   │   │   ├── landing.js
+│   │   │   ├── panel.js
+│   │   │   ├── qr.js
+│   │   │   └── rrpp.js
 │   │   ├── utils/
-│   │   │   ├── alerts.js            # Telegram / email fraud & backup alerts
+│   │   │   ├── alertas.js           # Telegram / email fraud & backup alerts
 │   │   │   ├── helpers.js           # ID generation, IP hashing, fingerprinting
-│   │   │   └── history.js           # Hourly backup export/import
+│   │   │   └── historico.js         # Hourly backup export/import
 │   │   └── index.js                 # App entry point — middleware & route wiring
 │   ├── .env.example
+│   ├── .gitignore
 │   ├── Dockerfile
-│   └── package.json
+│   ├── package.json
+│   └── package-lock.json
 ├── frontend/
 │   ├── admin/index.html             # Admin panel (events, RRPPs, QRs, flyers, fraud)
 │   ├── jefe/index.html              # Venue manager panel (read-only overview)
