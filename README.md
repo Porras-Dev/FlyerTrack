@@ -44,7 +44,6 @@ FlyerTrack lets a venue create events, assign promoters, and generate a unique Q
 - [Roles & access](#roles--access)
 - [API overview](#api-overview)
 - [Project structure](#project-structure)
-- [Screenshots](#screenshots)
 - [License](#license)
 
 ---
@@ -233,12 +232,6 @@ FlyerTrack/
 ├── LICENSE
 └── README.md
 ```
-
----
-
-## Screenshots
-
-_Screenshots of the admin, venue manager and promoter dashboards will be added here._
 
 ---
 
