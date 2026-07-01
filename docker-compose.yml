@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  flyertrack:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: flyertrack-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/flyertrack.db
+      - FRONTEND_DIR=/app/frontend
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - BASE_URL=${BASE_URL}
+    volumes:
+      - flyertrack-data:/app/data
+      - flyertrack-assets:/app/assets
+    restart: unless-stopped
+
+volumes:
+  flyertrack-data:
+  flyertrack-assets:

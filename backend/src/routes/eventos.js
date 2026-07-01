@@ -1,0 +1,13 @@
+const express = require('express');
+const router = express.Router();
+const { listEvents, getEvent, createEvent, editEvent, assignRRPP, unassignRRPP, closeEvent, deleteEvent } = require('../controllers/eventosController');
+const { verifyToken, adminOnly, adminOrManagerOnly } = require('../middleware/auth');
+router.get('/', verifyToken, adminOrManagerOnly, listEvents);
+router.get('/:id', verifyToken, adminOrManagerOnly, getEvent);
+router.post('/', verifyToken, adminOnly, createEvent);
+router.put('/:id', verifyToken, adminOnly, editEvent);
+router.post('/:id/rrpps', verifyToken, adminOnly, assignRRPP);
+router.delete('/:id/rrpps/:rrpp_id', verifyToken, adminOnly, unassignRRPP);
+router.post('/:id/cerrar', verifyToken, adminOnly, closeEvent);
+router.delete('/:id', verifyToken, adminOnly, deleteEvent);
+module.exports = router;

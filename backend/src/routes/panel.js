@@ -1,0 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const { dashboardAdmin, dashboardJefe, eventRanking, dashboardRRPP, realtimeScans, exportAlertsCSV } = require('../controllers/panelController');
+const { verifyToken, adminOnly, adminOrManagerOnly } = require('../middleware/auth');
+router.get('/admin', verifyToken, adminOnly, dashboardAdmin);
+router.get('/jefe', verifyToken, adminOrManagerOnly, dashboardJefe);
+router.get('/jefe/evento/:evento_id', verifyToken, adminOrManagerOnly, eventRanking);
+router.get('/rrpp', verifyToken, dashboardRRPP);
+router.get('/tiempo-real/:evento_id', verifyToken, adminOrManagerOnly, realtimeScans);
+router.get('/alertas/csv', verifyToken, adminOnly, exportAlertsCSV);
+module.exports = router;

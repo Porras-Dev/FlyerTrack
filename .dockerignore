@@ -1,0 +1,15 @@
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.db-shm
+**/*.db-wal
+backend/temp
+backend/historico
+backend/*.zip
+backend/*.pdf
+.git
+.gitignore
+README.md
+LICENSE

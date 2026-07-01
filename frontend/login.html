@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlyerTrack — Acceso</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px; width: 100%; max-width: 380px; }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo h1 { font-size: 24px; font-weight: 700; }
+  .login-logo p { color: var(--text3); font-size: 13px; margin-top: 4px; }
+  .login-card .btn-primary { width: 100%; justify-content: center; padding: 12px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-logo">
+    <h1>FlyerTrack</h1>
+    <p>Sistema de control de RRPPs</p>
+  </div>
+  <div id="alert-container"></div>
+  <div class="form-group">
+    <label>Usuario</label>
+    <input type="text" id="usuario" placeholder="tu usuario" autocomplete="username">
+  </div>
+  <div class="form-group">
+    <label>Contraseña</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+  </div>
+  <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+</div>
+<script src="assets/js/api.js"></script>
+<script>
+  if (api.isLoggedIn()) {
+    const rol = JSON.parse(atob(api.token.split('.')[1])).rol;
+    if (rol === 'admin') window.location.href = 'admin/index.html';
+    else if (rol === 'jefe') window.location.href = 'jefe/index.html';
+    else window.location.href = 'rrpp/index.html';
+  }
+
+  document.getElementById('password').addEventListener('keypress', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const usuario = document.getElementById('usuario').value.trim();
+    const password = document.getElementById('password').value;
+    if (!usuario || !password) return showAlert('Introduce usuario y contraseña');
+    try {
+      const data = await api.login(usuario, password);
+      const rol = data.usuario.rol;
+      if (rol === 'admin') window.location.href = 'admin/index.html';
+      else if (rol === 'jefe') window.location.href = 'jefe/index.html';
+      else window.location.href = 'rrpp/index.html';
+    } catch (e) {
+      showAlert(e.message || 'Usuario o contraseña incorrectos');
+    }
+  }
+</script>
+</body>
+</html>

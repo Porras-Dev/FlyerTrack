@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlyerTrack — Panel Jefe</title>
+<link rel="stylesheet" href="../assets/css/base.css">
+<style>
+select {
+  background: var(--bg3) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+}
+@media (max-width: 768px) {
+  td { padding: 4px 14px; font-size: 14px; }
+  td[data-label]:before { font-size: 12px; }
+  td:last-child { flex-direction: row !important; align-items: center !important; flex-wrap: nowrap !important; }
+  td:last-child > span { margin-left: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="hamburger" id="topbar">
+  <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+  <span class="hamburger-title">FlyerTrack</span>
+</div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h1>FlyerTrack</h1>
+    <span>Panel Dirección</span>
+  </div>
+  <a class="nav-item active" id="nav-eventos" onclick="showPage('eventos', this)">
+    <span class="icon">🎉</span> Eventos
+  </a>
+  <a class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
+    <span class="icon">🏆</span> Ranking
+  </a>
+  <div class="theme-toggle">
+    <button class="btn" onclick="toggleTheme()" style="width:100%;justify-content:center">
+      <span id="tema-icon">☀️</span> Cambiar tema
+    </button>
+    <button class="btn btn-danger" onclick="handleLogout()" style="width:100%;justify-content:center;margin-top:8px">
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div id="alert-container"></div>
+
+  <div class="page active" id="page-eventos">
+    <div class="page-title">Todos los eventos</div>
+    <div class="cards-grid" id="stats-globales"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-sm" id="efiltro-todos" onclick="setEventsFilter('todos')">Todos</button>
+      <button class="btn btn-sm" id="efiltro-activo" onclick="setEventsFilter('activo')">Activos</button>
+      <button class="btn btn-sm" id="efiltro-cerrado" onclick="setEventsFilter('cerrado')">Cerrados</button>
+    </div>
+    <div style="margin-bottom:16px">
+      <input type="text" id="buscar-evento" placeholder="Buscar evento por nombre..." oninput="renderEventsTable()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Evento</th><th>Sala</th><th>Fecha</th><th>RRPPs</th><th>QRs</th><th>Escaneos</th><th>Físicos</th><th>Enlace</th><th>Estado</th><th>Informe</th></tr></thead>
+        <tbody id="tabla-eventos"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page" id="page-ranking">
+    <div class="page-title">Ranking por evento</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-sm" id="rfiltro-todos" onclick="setRankingFilter('todos')">Todos</button>
+      <button class="btn btn-sm" id="rfiltro-activo" onclick="setRankingFilter('activo')">Activos</button>
+      <button class="btn btn-sm" id="rfiltro-cerrado" onclick="setRankingFilter('cerrado')">Cerrados</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="filtros-grupo-ranking"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <input type="text" id="buscar-evento-ranking" placeholder="Buscar evento..." oninput="filterRankingSelect()" style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+      <select id="select-evento-ranking" onchange="loadRanking(this.value);rankingEventName=this.options[this.selectedIndex].text.replace(/ \(.*\)/,'')" style="flex:1;min-width:180px"></select>
+    </div>
+  <div id="ranking-container"></div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+
+const toggleSidebar = () => {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+};
+
+if (!api.isLoggedIn()) window.location.href = '../login.html';
+const roleToken = JSON.parse(atob(api.token.split('.')[1])).rol;
+if (!['admin','jefe'].includes(roleToken)) window.location.href = '../login.html';
+
+const showPage = (name, el) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'eventos') loadEvents();
+  if (name === 'ranking') loadRankingSelector();
+};
+
+const toggleTheme = () => {
+  const html = document.documentElement;
+  const actual = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', actual === 'dark' ? 'light' : 'dark');
+  document.getElementById('tema-icon').textContent = actual === 'dark' ? '🌙' : '☀️';
+};
+
+const handleLogout = async () => {
+  await api.logout();
+  window.location.href = '../login.html';
+};
+
+let rankingEventName = '';
+let bossEventsCache = [];
+let bossEventsFilter = 'todos';
+let eventsSort = { col: null, dir: 1 };
+
+const setEventsFilter = (filter) => {
+  bossEventsFilter = filter;
+  document.querySelectorAll('[id^="efiltro-"]').forEach(b => {
+    b.style.background = ''; b.style.color = ''; b.style.borderColor = '';
+  });
+  document.getElementById(`efiltro-${filter}`).style.cssText += 'background:var(--velvet);color:white;border-color:var(--velvet)';
+  renderEventsTable();
+};
+
+const sortEventsBy = (col) => {
+  if (eventsSort.col === col) eventsSort.dir *= -1;
+  else { eventsSort.col = col; eventsSort.dir = 1; }
+  renderEventsTable();
+};
+
+const renderEventsTable = () => {
+  const search = (document.getElementById('buscar-evento')?.value || '').toLowerCase();
+  let rows = bossEventsCache.filter(e => {
+    const matchFilter = bossEventsFilter === 'todos' || e.estado === bossEventsFilter;
+    const matchSearch = e.nombre.toLowerCase().includes(search);
+    return matchFilter && matchSearch;
+  });
+
+  if (eventsSort.col) {
+    rows.sort((a, b) => {
+      const va = a[eventsSort.col] ?? 0;
+      const vb = b[eventsSort.col] ?? 0;
+      return typeof va === 'string'
+        ? va.localeCompare(vb) * eventsSort.dir
+        : (va - vb) * eventsSort.dir;
+    });
+  }
+
+  const sortArrow = (col) => eventsSort.col === col ? (eventsSort.dir === 1 ? ' ↑' : ' ↓') : '';
+
+  document.getElementById('tabla-eventos').innerHTML = rows.length ? rows.map(e => `
+    <tr>
+      <td><strong>${escapeHtml(e.nombre)}</strong></td>
+      <td>${roomBadge(e.sala)}</td>
+      <td>${formatDate(e.fecha)}</td>
+      <td>${e.total_rrpps || 0}</td>
+      <td>${e.total_qrs || 0}</td>
+      <td>${e.escaneos_validos || 0}</td>
+      <td>${e.escaneos_fisicos || 0}</td>
+      <td>${e.escaneos_enlace || 0}</td>
+      <td>${statusBadge(e.estado)}</td>
+      <td>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%">
+          <button class="btn btn-sm" onclick="downloadReport('${e.id}')">PDF</button>
+          <button class="btn btn-sm" onclick="downloadCSV('${e.id}')">CSV</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="10" class="empty">Sin eventos</td></tr>';
+
+  applyDataLabels();
+
+  document.querySelector('#page-eventos table thead tr').innerHTML = `
+    <th onclick="sortEventsBy('nombre')" style="cursor:pointer">Evento${sortArrow('nombre')}</th>
+    <th>Sala</th>
+    <th onclick="sortEventsBy('fecha')" style="cursor:pointer">Fecha${sortArrow('fecha')}</th>
+    <th onclick="sortEventsBy('total_rrpps')" style="cursor:pointer">RRPPs${sortArrow('total_rrpps')}</th>
+    <th onclick="sortEventsBy('total_qrs')" style="cursor:pointer">QRs${sortArrow('total_qrs')}</th>
+    <th onclick="sortEventsBy('escaneos_validos')" style="cursor:pointer">Escaneos${sortArrow('escaneos_validos')}</th>
+    <th onclick="sortEventsBy('escaneos_fisicos')" style="cursor:pointer">Físicos${sortArrow('escaneos_fisicos')}</th>
+    <th onclick="sortEventsBy('escaneos_enlace')" style="cursor:pointer">Enlace${sortArrow('escaneos_enlace')}</th>
+    <th>Estado</th>
+    <th>Informe</th>
+  `;
+};
+
+const loadEvents = async () => {
+  try {
+    const data = await api.get('/api/panel/jefe');
+    bossEventsCache = data.eventos;
+
+    const totalScans = bossEventsCache.reduce((s, e) => s + (e.escaneos_validos || 0), 0);
+    const totalQRs = bossEventsCache.reduce((s, e) => s + (e.total_qrs || 0), 0);
+    const totalPhysical = bossEventsCache.reduce((s, e) => s + (e.escaneos_fisicos || 0), 0);
+
+    document.getElementById('stats-globales').innerHTML = `
+      <div class="stat-card"><div class="label">Total eventos</div><div class="value">${bossEventsCache.length}</div></div>
+      <div class="stat-card"><div class="label">QRs totales</div><div class="value">${totalQRs}</div></div>
+      <div class="stat-card"><div class="label">Escaneos válidos</div><div class="value">${totalScans}</div></div>
+      <div class="stat-card"><div class="label">Escaneos físicos</div><div class="value">${totalPhysical}</div></div>
+    `;
+
+    setEventsFilter('todos');
+  } catch(e) { showAlert(e.message); }
+};
+
+let rankingEventsCache = [];
+let rankingFilter = 'todos';
+let rankingSort = { col: null, dir: 1 };
+
+const setRankingFilter = (filter) => {
+  rankingFilter = filter;
+  document.querySelectorAll('[id^="rfiltro-"]').forEach(b => {
+    b.style.background = ''; b.style.color = ''; b.style.borderColor = '';
+  });
+  document.getElementById(`rfiltro-${filter}`).style.cssText += 'background:var(--velvet);color:white;border-color:var(--velvet)';
+  filterRankingSelect();
+};
+
+const filterRankingSelect = () => {
+  const search = (document.getElementById('buscar-evento-ranking')?.value || '').toLowerCase();
+  const sel = document.getElementById('select-evento-ranking');
+  const currentValue = sel.value;
+
+  const filtered = rankingEventsCache.filter(e => {
+    const matchFilter = rankingFilter === 'todos' || e.estado === rankingFilter;
+    const matchSearch = e.nombre.toLowerCase().includes(search);
+    return matchFilter && matchSearch;
+  });
+
+  sel.innerHTML = filtered.map(e => `<option value="${e.id}" ${e.id === currentValue ? 'selected' : ''}>${escapeHtml(e.nombre)} (${e.estado})</option>`).join('');
+
+  if (filtered.length > 0) {
+    setTimeout(() => {
+      loadRanking(sel.value);
+    }, 0);
+  } else {
+    document.getElementById('ranking-container').innerHTML = '<div class="empty">Sin eventos</div>';
+  }
+};
+
+const loadRankingSelector = async () => {
+  try {
+    const [data, groups] = await Promise.all([
+      api.get('/api/panel/jefe'),
+      api.get('/api/rrpps/grupos/lista')
+    ]);
+    rankingEventsCache = data.eventos;
+
+    document.getElementById('filtros-grupo-ranking').innerHTML = `
+      <button class="btn btn-sm" id="rgfiltro-todos" onclick="setRankingGroupFilter('todos')" style="background:var(--velvet);color:white;border-color:var(--velvet)">Todos</button>
+      ${groups.map(g => `<button class="btn btn-sm" id="rgfiltro-${escapeHtml(g.nombre)}" onclick="setRankingGroupFilter('${escapeHtml(g.nombre)}')" style="border-color:${g.color};color:${g.color}">${escapeHtml(g.nombre)}</button>`).join('')}
+    `;
+
+    setRankingFilter('todos');
+  } catch(e) { showAlert(e.message); }
+};
+
+let rankingGroupFilter = 'todos';
+
+const setRankingGroupFilter = (group) => {
+  rankingGroupFilter = group;
+
+  document.querySelectorAll('[id^="rgfiltro-"]').forEach(b => {
+    const originalColor = b.style.borderColor;
+    b.style.background = '';
+    b.style.color = originalColor;
+  });
+
+  const btn = document.getElementById(`rgfiltro-${group}`);
+  if (btn) {
+    const color = btn.style.borderColor;
+    btn.style.background = color;
+    btn.style.color = 'white';
+  }
+
+  renderRanking();
+};
+
+let rankingCache = [];
+let rankingSortCol = { col: null, dir: 1 };
+
+const sortRankingBy = (col) => {
+  if (rankingSortCol.col === col) rankingSortCol.dir *= -1;
+  else { rankingSortCol.col = col; rankingSortCol.dir = 1; }
+  renderRanking();
+};
+
+const renderRanking = () => {
+  const searchRRPPValue = document.getElementById('buscar-rrpp-ranking')?.value || '';
+  const sortArrow = (col) => rankingSortCol.col === col ? (rankingSortCol.dir === 1 ? ' ↑' : ' ↓') : '';
+
+  const searchRRPP = (document.getElementById('buscar-rrpp-ranking')?.value || '').toLowerCase();
+  let rows = rankingCache.filter(r => {
+    const matchSearch = r.nombre.toLowerCase().includes(searchRRPP);
+    const matchGroup = rankingGroupFilter === 'todos' || (r.grupos && r.grupos.split(',').map(g => g.trim()).includes(rankingGroupFilter));
+    return matchSearch && matchGroup;
+  });
+  if (rankingSortCol.col) {
+    rows.sort((a, b) => {
+      const va = a[rankingSortCol.col] ?? 0;
+      const vb = b[rankingSortCol.col] ?? 0;
+      return typeof va === 'string'
+        ? va.localeCompare(vb) * rankingSortCol.dir
+        : (va - vb) * rankingSortCol.dir;
+    });
+  }
+
+  document.getElementById('ranking-container').innerHTML = `
+    <div class="card">
+      <div class="card-title" id="ranking-titulo" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Ranking — ${escapeHtml(rankingEventName)}</span>
+        <input type="text" id="buscar-rrpp-ranking" placeholder="Buscar RRPP..." oninput="renderRanking()" style="width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-weight:400">
+      </div>
+      <table>
+        <thead><tr>
+          <th onclick="sortRankingBy('pos')" style="cursor:pointer">Pos${sortArrow('pos')}</th>
+          <th>RRPP</th>
+          <th>Código</th>
+          <th onclick="sortRankingBy('total_qrs')" style="cursor:pointer">QRs${sortArrow('total_qrs')}</th>
+          <th onclick="sortRankingBy('flyers_activados')" style="cursor:pointer">Activados${sortArrow('flyers_activados')}</th>
+          <th onclick="sortRankingBy('escaneos_validos')" style="cursor:pointer">Válidos${sortArrow('escaneos_validos')}</th>
+          <th onclick="sortRankingBy('escaneos_fisicos')" style="cursor:pointer">Físicos${sortArrow('escaneos_fisicos')}</th>
+          <th onclick="sortRankingBy('escaneos_enlace')" style="cursor:pointer">Enlace${sortArrow('escaneos_enlace')}</th>
+          <th onclick="sortRankingBy('tasa_activacion')" style="cursor:pointer">Tasa${sortArrow('tasa_activacion')}</th>
+          <th onclick="sortRankingBy('escaneos_sospechosos')" style="cursor:pointer">Sosp.${sortArrow('escaneos_sospechosos')}</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r, i) => `
+            <tr>
+              <td><strong style="font-size:18px">${i+1}</strong></td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="avatar" style="width:28px;height:28px;font-size:11px">${getInitials(r.nombre)}</div>
+                ${escapeHtml(r.nombre)}
+              </div></td>
+              <td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px">${escapeHtml(r.codigo_descuento)}</code></td>
+              <td>${r.total_qrs}</td>
+              <td><strong>${r.flyers_activados}</strong></td>
+              <td>${r.escaneos_validos}</td>
+              <td>${r.escaneos_fisicos}</td>
+              <td>${r.escaneos_enlace}</td>
+              <td><strong style="color:var(--success)">${r.tasa_activacion}%</strong></td>
+              <td><span>${r.escaneos_sospechosos > 0 ? `<span class="badge badge-danger">${r.escaneos_sospechosos}</span>` : '—'}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  applyDataLabels();
+  const searchInput = document.getElementById('buscar-rrpp-ranking');
+  if (searchInput) { searchInput.value = searchRRPPValue; searchInput.focus(); }
+};
+
+const loadRanking = async (eventId) => {
+  if (!eventId) return;
+  try {
+    const data = await api.get(`/api/panel/jefe/evento/${eventId}`);
+    rankingEventName = data.evento.nombre;
+    rankingCache = data.ranking;
+    rankingSortCol = { col: null, dir: 1 };
+    renderRanking();
+  } catch(e) { showAlert(e.message); }
+};
+
+const downloadReport = (id) => {
+  window.open(`${API_URL}/api/informes/pdf/${id}?token=${api.token}`, '_blank');
+};
+
+const downloadCSV = (id) => {
+  window.open(`${API_URL}/api/informes/csv/${id}?token=${api.token}`, '_blank');
+};
+
+loadEvents();
+</script>
+</body>
+</html>

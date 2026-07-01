@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const { generateQRsBatch, listQRs, deleteRRPPQRs, listBlocked, unblockQR } = require('../controllers/qrController');
+const { verifyToken, adminOnly, adminOrManagerOnly } = require('../middleware/auth');
+router.post('/generar', verifyToken, adminOnly, generateQRsBatch);
+router.get('/', verifyToken, adminOrManagerOnly, listQRs);
+router.get('/bloqueados', verifyToken, adminOnly, listBlocked);
+router.post('/desbloquear/:id', verifyToken, adminOnly, unblockQR);
+router.delete('/lote/:lote_id', verifyToken, adminOnly, deleteRRPPQRs);
+module.exports = router;

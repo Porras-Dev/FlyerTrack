@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlyerTrack — Admin</title>
+<link rel="stylesheet" href="../assets/css/base.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+<div class="hamburger" id="topbar">
+  <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+  <span class="hamburger-title">FlyerTrack</span>
+</div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>FlyerTrack</h1>
+    <span>Panel Admin</span>
+  </div>
+  <a class="nav-item active" onclick="showPage('dashboard')">
+    <span class="icon">📊</span> Dashboard
+  </a>
+  <a class="nav-item" onclick="showPage('eventos')">
+    <span class="icon">🎉</span> Eventos
+  </a>
+  <a class="nav-item" onclick="showPage('rrpps')">
+    <span class="icon">👥</span> RRPPs
+  </a>
+  <a class="nav-item" onclick="showPage('qrs')">
+    <span class="icon">📱</span> Generar QRs
+  </a>
+  <a class="nav-item" onclick="showPage('flyers')">
+    <span class="icon">🖼️</span> Montar Flyers
+  </a>
+  <a class="nav-item" onclick="showPage('suspensiones')">
+    <span class="icon">🔒</span> Suspensiones
+  </a>
+  <a class="nav-item" onclick="showPage('alertas')">
+    <span class="icon">🚨</span> Alertas
+  </a>
+  <a class="nav-item" onclick="showPage('historico')">
+    <span class="icon">📚</span> Histórico
+  </a>
+  <div class="theme-toggle">
+    <button class="btn" onclick="toggleTheme()" style="width:100%;justify-content:center">
+      <span id="tema-icon">☀️</span> Cambiar tema
+    </button>
+    <button class="btn btn-danger" onclick="signOut()" style="width:100%;justify-content:center;margin-top:8px">
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div id="alert-container"></div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">Dashboard</div>
+    <div class="cards-grid" id="stats-cards"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-title">Eventos recientes</div>
+        <table><thead><tr><th>Evento</th><th>Sala</th><th>QRs</th><th>Escaneos</th><th>Estado</th></tr></thead>
+        <tbody id="tabla-eventos-recientes"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          Salud del sistema
+          <span class="dot-green pulse"></span>
+        </div>
+        <div id="salud-sistema"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENTOS -->
+  <div class="page" id="page-eventos">
+    <div class="page-title" style="display:flex;justify-content:space-between;align-items:center">
+      Eventos
+      <button class="btn btn-primary" onclick="openEventModal()">+ Nuevo evento</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-sm" id="filtro-todos" onclick="filterEvents('todos')">Todos</button>
+      <button class="btn btn-sm" id="filtro-activo" onclick="filterEvents('activo')">Activos</button>
+      <button class="btn btn-sm" id="filtro-cerrado" onclick="filterEvents('cerrado')">Cerrados</button>
+    </div>
+    <div style="margin-bottom:16px">
+      <input type="text" id="buscar-evento-admin" placeholder="Buscar evento por nombre..." oninput="filterEvents(currentEventFilter)" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div class="card">
+      <table style="border-collapse:separate;border-spacing:0"><thead style="display:none"><tr><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead>
+      <tbody id="tabla-eventos"></tbody></table>
+    </div>
+  </div>
+
+  <!-- RRPPs -->
+  <div class="page" id="page-rrpps">
+    <div class="page-title" style="display:flex;justify-content:space-between;align-items:center">
+      RRPPs
+      <button class="btn btn-primary" onclick="openRRPPModal()">+ Nuevo RRPP</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="filtros-grupo-rrpp"></div>
+      <div style="margin-bottom:16px">
+      <input type="text" id="buscar-rrpp-admin" placeholder="Buscar RRPP por nombre..." oninput="searchAdminRRPPs()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+    </div>
+    <div class="card">
+      <table><thead><tr><th>RRPP</th><th>Usuario</th><th>Grupos</th><th>Último acceso</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tabla-rrpps"></tbody></table>
+    </div>
+  </div>
+
+  <!-- GENERAR QRs -->
+  <div class="page" id="page-qrs">
+    <div class="page-title">Generar QRs</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+      <div class="form-group"><label>Evento</label><select id="qr-evento" onchange="loadEventRRPPs('qr-evento','qr-rrpp')"></select></div>      <div class="form-group">
+        <label>Filtrar por grupo</label>
+        <select id="qr-grupo" onchange="filterRRPPsByGroup('qr-rrpp','qr-grupo')"></select>
+      </div>
+      <div class="form-group">
+        <label>RRPP</label>
+        <select id="qr-rrpp"></select>
+      </div>
+      <div class="form-group"><label>Cantidad de flyers</label><input type="number" id="qr-cantidad" value="50" min="1" max="1000"></div>
+      <div class="form-group">
+        <label>Tipo de QR</label>
+        <select id="qr-tipo">
+          <option value="estandar">Estándar (negro)</option>
+          <option value="con_logo">Con logo de la sala</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="generateQRs()">Generar y descargar ZIP</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Últimos lotes generados</div>
+        <div id="historial-qrs"><div class="loading">Cargando...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTAR FLYERS -->
+  <div class="page" id="page-flyers">
+    <div class="page-title">Montar flyers con QRs</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="card">
+      <div class="form-group"><label>Evento</label><select id="flyer-evento" onchange="loadEventRRPPs('flyer-evento','flyer-rrpp')"></select></div>
+      <div class="form-group">
+        <label>Filtrar por grupo</label>
+        <select id="flyer-grupo" onchange="filterRRPPsByGroup('flyer-rrpp','flyer-grupo')"></select>
+      </div>
+      <div class="form-group">
+        <label>RRPP</label>
+        <select id="flyer-rrpp"></select>
+      </div>
+      <div class="form-group"><label>Flyer base (PNG o JPG)</label><input type="file" id="flyer-archivo" accept="image/png,image/jpeg,application/pdf" onchange="updatePreview()"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="form-group"><label>Pos X (px)</label><input type="number" id="flyer-x" value="100" oninput="updatePreview()"></div>
+        <div class="form-group"><label>Pos Y (px)</label><input type="number" id="flyer-y" value="100" oninput="updatePreview()"></div>
+        <div class="form-group"><label>Tamaño QR (px)</label><input type="number" id="flyer-size" value="300" oninput="updatePreview()"></div>
+      </div>
+      <div class="form-group">
+  <label>Formato de salida</label>
+  <select id="flyer-formato">
+    <option value="png">PNG (imagen)</option>
+    <option value="pdf">PDF</option>
+  </select>
+</div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="assembleFlyers()">Montar y descargar ZIP</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Preview</div>
+      <div id="preview-flyer" style="position:relative;width:100%;max-height:500px;background:var(--bg3);border-radius:var(--radius);min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="color:var(--text3);font-size:13px">Sube un flyer para ver el preview</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- SUSPENSIONES -->
+  <div class="page" id="page-suspensiones">
+    <div class="page-title">Suspensiones y bloqueos</div>
+    <div class="card">
+      <div class="card-title">Cuentas suspendidas o bloqueadas</div>
+      <table>
+        <thead><tr><th>RRPP</th><th>Usuario</th><th>Estado</th><th>Suspendido hasta</th><th>Acciones</th></tr></thead>
+        <tbody id="tabla-suspensiones"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="page" id="page-historico">
+    <div class="page-title">Histórico de eventos</div>
+    <div id="historico-eventos-container">
+      <div class="loading">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="page" id="page-alertas">
+    <div class="page-title" style="display:flex;justify-content:space-between;align-items:center">
+  Alertas de fraude
+  <button class="btn btn-sm" onclick="window.open(`${API_URL}/api/panel/alertas/csv?token=${api.token}`, '_blank')">📥 Exportar CSV</button>
+</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title" style="color:var(--danger)">🔒 QRs bloqueados pendientes de revisión</div>
+      <table>
+        <thead><tr><th>RRPP</th><th>Evento</th><th>Flyer</th><th>Escaneos</th><th>Sospechosos</th><th>Motivo</th><th>Acción</th></tr></thead>
+        <tbody id="tabla-bloqueados"></tbody>
+      </table>
+    </div>
+<div class="card" id="card-rrpps-sospechosos" style="margin-bottom:20px;display:none">
+      <div class="card-title" style="color:var(--warning)">⚠️ RRPPs con tasa de activación sospechosa</div>
+      <table>
+        <thead><tr><th>RRPP</th><th>Evento</th><th>QRs totales</th><th>Activados</th><th>Tasa</th></tr></thead>
+        <tbody id="tabla-rrpps-sospechosos"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Escaneos sospechosos</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)">
+          <span style="color:var(--danger)">⚠️</span>
+          <strong style="color:var(--danger)">Autoescaneo</strong> — mismo dispositivo escaneando múltiples QRs del mismo evento
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)">
+          <span>🔄</span>
+          <strong style="color:var(--warning)">Reutilización de QR</strong> — mismo QR escaneado demasiadas veces
+        </div>
+      </div>
+      <table><thead><tr><th>Hora</th><th>RRPP</th><th>Evento</th><th>Flyer</th><th>Tipo</th><th>Motivo</th></tr></thead>
+      <tbody id="tabla-alertas"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EVENTO -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <div class="modal-title" id="modal-evento-titulo">Nuevo evento</div>
+    <div class="form-group"><label>Nombre</label><input type="text" id="ev-nombre"></div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="ev-fecha"></div>
+    <div class="form-group"><label>Lugar</label><input type="text" id="ev-lugar"></div>
+    <div class="form-group">
+      <label>Sala</label>
+      <select id="ev-sala">
+        <option value="velvet">Velvet</option>
+        <option value="lemon">Lemon</option>
+        <option value="zrrcus">Zrrcus</option>
+      </select>
+    </div>
+    <div class="form-group"><label>URL MonsterTicket</label><input type="url" id="ev-url"></div>
+    <div class="form-group"><label>Entradas restantes (opcional)</label><input type="number" id="ev-entradas"></div>
+    <div class="form-group"><label>Oferta expira (opcional)</label><input type="datetime-local" id="ev-oferta"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Umbral fraude (escaneos)</label><input type="number" id="ev-umbral-n" value="5"></div>
+      <div class="form-group"><label>En X minutos</label><input type="number" id="ev-umbral-m" value="2"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-evento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RRPP -->
+<div class="modal-overlay" id="modal-rrpp">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-title">Nuevo RRPP</div>
+    <div class="form-group"><label>Nombre completo</label><input type="text" id="rp-nombre"></div>
+    <div class="form-group"><label>Usuario</label><input type="text" id="rp-usuario"></div>
+    <div class="form-group"><label>Contraseña</label><input type="password" id="rp-password"></div>
+    <div class="form-group"><label>Email (opcional)</label><input type="email" id="rp-email"></div>
+    <div class="form-group">
+      <label>Grupos</label>
+      <div id="grupos-checkboxes-rrpp" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-rrpp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRRPP()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ASIGNAR RRPP -->
+<div class="modal-overlay" id="modal-asignar">
+  <div class="modal">
+    <div class="modal-title">Asignar RRPP al evento</div>
+    <input type="hidden" id="asignar-evento-id">
+    <div class="form-group"><label>RRPP</label><select id="asignar-rrpp-id"></select></div>
+    <div class="form-group"><label>Código de descuento</label><input type="text" id="asignar-codigo" placeholder="PEPE10"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-asignar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAssignment()">Asignar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR RRPP -->
+<div class="modal-overlay" id="modal-editar-rrpp">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-title">Editar RRPP</div>
+    <input type="hidden" id="edit-rp-id">
+    <div class="form-group"><label>Nombre completo</label><input type="text" id="edit-rp-nombre"></div>
+    <div class="form-group"><label>Usuario</label><input type="text" id="edit-rp-usuario"></div>
+    <div class="form-group"><label>Nueva contraseña (dejar vacío para no cambiar)</label><input type="password" id="edit-rp-password"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="edit-rp-email"></div>
+    <div class="form-group">
+      <label>Grupos</label>
+      <div id="edit-grupos-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-editar-rrpp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRRPPEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+
+const toggleSidebar = () => {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+};
+
+if (!api.isLoggedIn()) window.location.href = '../login.html';
+const rol = JSON.parse(atob(api.token.split('.')[1])).rol;
+if (rol !== 'admin') window.location.href = '../login.html';
+
+let editingEventId = null;
+let eventsCache = [];
+let rrppsCache = [];
+
+const showPage = (name) => {
+  document.getElementById('alert-container').innerHTML = '';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'eventos') loadEvents();
+  if (name === 'rrpps') loadRRPPs();
+  if (name === 'qrs' || name === 'flyers') loadSelectors();
+  if (name === 'qrs') loadQRHistory();
+  if (name === 'alertas') loadAlerts();
+  if (name === 'historico') loadHistory();
+  if (name === 'suspensiones') loadSuspensions();
+};
+
+const toggleTheme = () => {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  document.getElementById('tema-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+};
+
+const signOut = async () => { await api.logout(); window.location.href = '../login.html'; };
+const openModal = (id) => document.getElementById(id).classList.add('open');
+const closeModal = (id) => document.getElementById(id).classList.remove('open');
+
+const loadDashboard = async () => {
+  try {
+    const data = await api.get('/api/panel/admin');
+    const s = data.stats;
+    document.getElementById('stats-cards').innerHTML = `
+      <div class="stat-card"><div class="label">Eventos activos</div><div class="value">${s.activeEvents}</div><div class="sub">de ${s.totalEvents} total</div></div>
+      <div class="stat-card"><div class="label">RRPPs activos</div><div class="value">${s.totalRRPPs}</div></div>
+      <div class="stat-card"><div class="label">QRs generados</div><div class="value">${s.totalQRs}</div></div>
+      <div class="stat-card"><div class="label">Escaneos válidos</div><div class="value">${s.totalScans}</div></div>
+      <div class="stat-card"><div class="label">Sospechosos</div><div class="value" style="color:var(--danger)">${s.suspiciousScans}</div></div>
+<div class="stat-card"><div class="label">QRs bloqueados</div><div class="value" style="color:var(--danger)">${s.blockedQRs || 0}</div></div>
+    `;
+    document.getElementById('tabla-eventos-recientes').innerHTML = data.recentEvents.map(e => `
+      <tr>
+        <td>${escapeHtml(e.nombre)}</td>
+        <td>${roomBadge(e.sala)}</td>
+        <td>${e.total_qrs}</td>
+        <td>${e.total_escaneos}</td>
+        <td>${statusBadge(e.estado)}</td>
+      </tr>
+    `).join('');
+    const ss = data.systemHealth;
+    document.getElementById('salud-sistema').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Uptime</span><span>${Math.floor(ss.uptime/60)} min</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Memoria</span><span>${ss.memoria_mb} MB</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Node</span><span>${ss.node_version}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Hora servidor</span><span>${formatDateTime(ss.timestamp)}</span></div>
+      </div>
+    `;
+  } catch(e) { showAlert(e.message); }
+};
+
+const loadEvents = async () => {
+  try {
+    adminEventsCache = await api.get('/api/eventos');
+    filterEvents(currentEventFilter);
+  } catch(e) { showAlert(e.message); }
+};
+
+let currentGroupFilter = 'todos';
+
+const loadRRPPs = async () => {
+  try {
+    rrppsCache = await api.get('/api/rrpps');
+    const groups = await api.get('/api/rrpps/grupos/lista');
+
+    document.getElementById('filtros-grupo-rrpp').innerHTML = `
+      <button class="btn btn-sm" onclick="setGroupFilter('todos')" id="gfiltro-todos" style="background:var(--velvet);color:white;border-color:var(--velvet)">Todos</button>
+      ${groups.map(g => `<button class="btn btn-sm" id="gfiltro-${g.id}" onclick="setGroupFilter('${g.id}')" style="border-color:${g.color};color:${g.color}">${escapeHtml(g.nombre)}</button>`).join('')}
+    `;
+
+    renderRRPPsTable();
+  } catch(e) { showAlert(e.message); }
+};
+
+const setGroupFilter = (groupId) => {
+  currentGroupFilter = groupId;
+
+  document.querySelectorAll('[id^="gfiltro-"]').forEach(b => {
+    if (b.id === 'gfiltro-todos') {
+      b.style.background = '';
+      b.style.color = 'var(--text)';
+      b.style.borderColor = 'var(--border)';
+    } else {
+      const color = b.style.borderColor;
+      b.style.background = '';
+      b.style.color = color;
+    }
+  });
+
+  const btn = document.getElementById(`gfiltro-${groupId}`);
+  if (btn) {
+    if (groupId === 'todos') {
+      btn.style.background = 'var(--velvet)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--velvet)';
+    } else {
+      const color = btn.style.borderColor;
+      btn.style.background = color;
+      btn.style.color = 'white';
+    }
+  }
+
+  renderRRPPsTable();
+};
+
+const renderRRPPsTable = () => {
+  const query = (document.getElementById('buscar-rrpp-admin')?.value || '').toLowerCase();
+
+  let data = rrppsCache.filter(r => {
+    const matchQuery = r.nombre.toLowerCase().includes(query);
+    const selectedGroup = document.getElementById(`gfiltro-${currentGroupFilter}`)?.textContent?.trim() || '';
+    const matchGroup = currentGroupFilter === 'todos' || (r.grupos && r.grupos.split(',').map(g => g.trim()).includes(selectedGroup));
+    return matchQuery && matchGroup;
+  });
+
+  document.getElementById('tabla-rrpps').innerHTML = data.length ? data.map(r => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar">${getInitials(r.nombre)}</div>
+        <span>${escapeHtml(r.nombre)}</span>
+      </div></td>
+      <td style="color:var(--text3)">@${escapeHtml(r.usuario)}</td>
+      <td>${r.grupos ? r.grupos.split(',').map(g => `<span class="badge badge-warning">${escapeHtml(g)}</span>`).join(' ') : '—'}</td>
+      <td style="color:var(--text3)">${r.ultimo_acceso ? formatDateTime(r.ultimo_acceso) : 'Nunca'}</td>
+      <td>${r.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+      <td>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+          <button class="btn btn-sm" style="justify-content:center" onclick="editRRPP('${r.id}')">✏️ Editar</button>
+<button class="btn btn-sm btn-danger" style="justify-content:center" onclick="toggleRRPPStatus('${r.id}',${r.activo})">${r.activo ? 'Desactivar' : 'Activar'}</button>
+<button class="btn btn-sm btn-danger" style="justify-content:center" onclick="deleteRRPP('${r.id}','${escapeHtml(r.nombre)}')">🗑 Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" class="empty">Sin RRPPs</td></tr>';
+
+  applyDataLabels();
+};
+
+const loadAlerts = async () => {
+  try {
+    const [data, blocked] = await Promise.all([
+      api.get('/api/panel/admin'),
+      api.get('/api/qrs/bloqueados')
+    ]);
+
+    document.getElementById('tabla-alertas').innerHTML = data.fraudAlerts.length
+      ? data.fraudAlerts.map(a => `
+        <tr>
+          <td>${formatDateTime(a.timestamp)}</td>
+          <td>${escapeHtml(a.rrpp_nombre)}</td>
+          <td>${escapeHtml(a.evento_nombre)}</td>
+          <td>Flyer #${a.numero_flyer}</td>
+          <td>${a.tipo_acceso}</td>
+          <td>${a.motivo_sospecha === 'autoescaneo' ? '<span style="color:var(--danger);font-weight:700">⚠️ Autoescaneo</span>' : '<span style="color:var(--warning)">🔄 Reutilización de QR</span>'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" class="empty">Sin alertas de fraude</td></tr>';
+
+    document.getElementById('tabla-bloqueados').innerHTML = blocked.length
+      ? blocked.map(q => `
+        <tr>
+          <td>${escapeHtml(q.rrpp_nombre)}</td>
+          <td>${escapeHtml(q.evento_nombre)}</td>
+          <td>Flyer #${q.numero_flyer}</td>
+          <td>${q.total_escaneos}</td>
+          <td style="color:var(--danger);font-weight:700">${q.escaneos_sospechosos}</td>
+          <td>${q.motivo === 'autoescaneo' ? '<span style="color:var(--danger);font-weight:700">⚠️ Autoescaneo</span>' : '<span style="color:var(--warning)">🔄 Reutilización</span>'}</td>
+          <td><button class="btn btn-sm btn-success" onclick="unblockQR('${q.id}')">✅ Desbloquear</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="6" class="empty">Sin QRs bloqueados</td></tr>';
+const suspiciousCard = document.getElementById('card-rrpps-sospechosos');
+    if (data.suspiciousRRPPs && data.suspiciousRRPPs.length > 0) {
+      suspiciousCard.style.display = '';
+      document.getElementById('tabla-rrpps-sospechosos').innerHTML = data.suspiciousRRPPs.map(r => `
+        <tr>
+          <td>${escapeHtml(r.nombre)}</td>
+          <td>${escapeHtml(r.evento)}</td>
+          <td>${r.total_qrs}</td>
+          <td>${r.activados}</td>
+          <td style="color:var(--warning);font-weight:700">${r.tasa}%</td>
+        </tr>`).join('');
+    } else {
+      suspiciousCard.style.display = 'none';
+    }
+  } catch(e) { showAlert(e.message); }
+};
+
+const loadSelectors = async () => {
+  try {
+    const [events, rrpps, groups] = await Promise.all([
+      api.get('/api/eventos'),
+      api.get('/api/rrpps'),
+      api.get('/api/rrpps/grupos/lista')
+    ]);
+
+    const evOptions = events.filter(e => e.estado === 'activo').map(e => `<option value="${e.id}">${escapeHtml(e.nombre)}</option>`).join('');
+    const rrppOptions = rrpps.map(r => `<option value="${r.id}" data-grupos="${escapeHtml(r.grupos || '')}">${escapeHtml(r.nombre)}</option>`).join('');
+    const groupOptions = `<option value="todos">Todos los grupos</option>` + groups.map(g => `<option value="${escapeHtml(g.nombre)}">${escapeHtml(g.nombre)}</option>`).join('');
+
+    ['qr-evento','flyer-evento'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = evOptions; });
+['qr-grupo','flyer-grupo'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = groupOptions; });
+
+window._rrppsCache = rrpps;
+loadQRHistory();
+
+setTimeout(() => {
+  loadEventRRPPs('qr-evento', 'qr-rrpp');
+  loadEventRRPPs('flyer-evento', 'flyer-rrpp');
+}, 100);
+  } catch(e) { showAlert(e.message); }
+};
+
+const filterRRPPsByGroup = (rrppSelectId, groupSelectId) => {
+  const group = document.getElementById(groupSelectId).value;
+  const rrpps = window._rrppsCache || [];
+  const filtered = group === 'todos' ? rrpps : rrpps.filter(r => r.grupos && r.grupos.split(',').map(g => g.trim()).includes(group));
+  document.getElementById(rrppSelectId).innerHTML = filtered.map(r => `<option value="${r.id}">${escapeHtml(r.nombre)}</option>`).join('');
+};
+
+const openEventModal = () => {
+  editingEventId = null;
+  document.getElementById('modal-evento-titulo').textContent = 'Nuevo evento';
+  ['ev-nombre','ev-fecha','ev-lugar','ev-url','ev-entradas','ev-oferta'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ev-umbral-n').value = 5;
+  document.getElementById('ev-umbral-m').value = 2;
+  openModal('modal-evento');
+};
+
+const saveEvent = async () => {
+  const body = {
+    nombre: document.getElementById('ev-nombre').value,
+    fecha: document.getElementById('ev-fecha').value,
+    lugar: document.getElementById('ev-lugar').value,
+    sala: document.getElementById('ev-sala').value,
+    url_monsterticket: document.getElementById('ev-url').value,
+    entradas_restantes: document.getElementById('ev-entradas').value || null,
+    oferta_expira: document.getElementById('ev-oferta').value || null,
+    umbral_fraude_escaneos: parseInt(document.getElementById('ev-umbral-n').value),
+    umbral_fraude_minutos: parseInt(document.getElementById('ev-umbral-m').value)
+  };
+  try {
+    if (editingEventId) await api.put(`/api/eventos/${editingEventId}`, body);
+    else await api.post('/api/eventos', body);
+    closeModal('modal-evento');
+    showAlert('Evento guardado correctamente', 'success');
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const openRRPPModal = async () => {
+  ['rp-nombre','rp-usuario','rp-password','rp-email'].forEach(id => document.getElementById(id).value = '');
+  const groups = await api.get('/api/rrpps/grupos/lista');
+  document.getElementById('grupos-checkboxes-rrpp').innerHTML = groups.map(g => `
+    <label style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;font-size:12px">
+      <input type="checkbox" value="${g.id}" style="accent-color:${g.color}">
+      <span style="color:${g.color};font-weight:500">${escapeHtml(g.nombre)}</span>
+    </label>
+  `).join('');
+  openModal('modal-rrpp');
+};
+
+const saveRRPP = async () => {
+  const groups = [...document.querySelectorAll('#grupos-checkboxes-rrpp input:checked')].map(i => i.value);
+  const body = {
+    nombre: document.getElementById('rp-nombre').value,
+    usuario: document.getElementById('rp-usuario').value,
+    password: document.getElementById('rp-password').value,
+    email: document.getElementById('rp-email').value,
+    grupos: groups
+  };
+  try {
+    await api.post('/api/rrpps', body);
+    closeModal('modal-rrpp');
+    showAlert('RRPP creado correctamente', 'success');
+    loadRRPPs();
+  } catch(e) { showAlert(e.message); }
+};
+
+const openAssignModal = async (eventId) => {
+  document.getElementById('asignar-evento-id').value = eventId;
+  const rrpps = await api.get('/api/rrpps');
+  document.getElementById('asignar-rrpp-id').innerHTML = rrpps.map(r => `<option value="${r.id}">${escapeHtml(r.nombre)}</option>`).join('');
+  openModal('modal-asignar');
+};
+
+const saveAssignment = async () => {
+  const eventId = document.getElementById('asignar-evento-id').value;
+  const body = {
+    rrpp_id: document.getElementById('asignar-rrpp-id').value,
+    codigo_descuento: document.getElementById('asignar-codigo').value
+  };
+  try {
+    await api.post(`/api/eventos/${eventId}/rrpps`, body);
+    closeModal('modal-asignar');
+    showAlert('RRPP asignado correctamente', 'success');
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const toggleRRPPStatus = async (id, activo) => {
+  try {
+    await api.put(`/api/rrpps/${id}`, { activo: activo ? 0 : 1 });
+    loadRRPPs();
+  } catch(e) { showAlert(e.message); }
+};
+
+const loadQRHistory = async () => {
+  try {
+    const batches = await api.get('/api/qrs');
+
+    document.getElementById('historial-qrs').innerHTML = batches.length ? batches.map(l => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:13px;font-weight:500">${escapeHtml(l.evento_nombre)}</div>
+          <div style="font-size:11px;color:var(--text3)">${escapeHtml(l.rrpp_nombre)} · ${formatDateTime(l.creado_en)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:18px;font-weight:700;color:var(--velvet)">${l.cantidad}</div>
+          <button class="btn btn-sm btn-danger" onclick="deleteRRPPQRs('${l.lote_id}','${escapeHtml(l.rrpp_nombre)}','${l.cantidad}')">🗑</button>
+        </div>
+      </div>
+    `).join('') : '<div class="empty">Sin lotes generados</div>';
+  } catch(e) { showAlert(e.message); }
+};
+
+const generateQRs = async () => {
+  const evento_id = document.getElementById('qr-evento').value;
+  const rrpp_id = document.getElementById('qr-rrpp').value;
+  const cantidad = parseInt(document.getElementById('qr-cantidad').value);
+  const tipo_qr = document.getElementById('qr-tipo').value;
+
+  try {
+    const evento = await api.get(`/api/eventos/${evento_id}`);
+    const rrppData = evento.rrpps.find(r => r.id === rrpp_id);
+    const alreadyGenerated = rrppData ? rrppData.total_qrs : 0;
+
+    if (alreadyGenerated > 0) {
+      const missing = cantidad - alreadyGenerated;
+      if (missing <= 0) {
+        if (!confirm(`${rrppData.nombre} ya tiene ${alreadyGenerated} QRs generados para este evento, que es igual o más de los ${cantidad} que quieres. ¿Generar ${cantidad} QRs adicionales de todas formas?`)) return;
+      } else {
+        const choice = confirm(`${rrppData.nombre} ya tiene ${alreadyGenerated} QRs generados. Faltan ${missing} para llegar a ${cantidad}.\n\nPulsa ACEPTAR para generar solo los ${missing} que faltan.\nPulsa CANCELAR para no generar nada.`);
+        if (!choice) return;
+        const body = { evento_id, rrpp_id, cantidad: missing, tipo_qr };
+        const res = await fetch(`${API_URL}/api/qrs/generar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${api.token}` },
+          body: JSON.stringify(body)
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'QRs.zip'; a.click();
+        showAlert(`${missing} QRs generados correctamente`, 'success');
+        loadQRHistory();
+        return;
+      }
+    }
+
+    const body = { evento_id, rrpp_id, cantidad, tipo_qr };
+    const res = await fetch(`${API_URL}/api/qrs/generar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${api.token}` },
+      body: JSON.stringify(body)
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'QRs.zip'; a.click();
+    showAlert('QRs generados correctamente', 'success');
+    loadQRHistory();
+  } catch(e) { showAlert(e.message); }
+};
+
+let qrDragging = false;
+let qrResizing = false;
+let dragStartX, dragStartY, qrStartX, qrStartY, qrStartSize;
+
+const updatePreview = async () => {
+  const file = document.getElementById('flyer-archivo').files[0];
+  const preview = document.getElementById('preview-flyer');
+  if (!file) return;
+
+  if (file.type === 'application/pdf') {
+  const arrayBuffer = await file.arrayBuffer();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1 });
+  const previewW = preview.offsetWidth;
+  const finalScale = Math.min(previewW / viewport.width, 480 / viewport.height);
+  const imgW = viewport.width * finalScale;
+  const imgH = viewport.height * finalScale;
+  const canvas = document.createElement('canvas');
+  canvas.width = imgW;
+  canvas.height = imgH;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: page.getViewport({ scale: finalScale }) }).promise;
+  const dataUrl = canvas.toDataURL();
+
+  const posX = parseInt(document.getElementById('flyer-x').value) || 100;
+  const posY = parseInt(document.getElementById('flyer-y').value) || 100;
+  const qrSize = parseInt(document.getElementById('flyer-size').value) || 300;
+
+  preview.innerHTML = `
+    <div style="position:relative;width:${imgW}px;height:${imgH}px;margin:0 auto" id="preview-container">
+      <img src="${dataUrl}" style="width:${imgW}px;height:${imgH}px;display:block;user-select:none">
+      <div id="qr-placeholder" style="position:absolute;left:${posX * finalScale}px;top:${posY * finalScale}px;width:${qrSize * finalScale}px;height:${qrSize * finalScale}px;border:3px solid var(--velvet);background:rgba(212,83,126,0.15);display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:move;user-select:none">
+        <span style="color:var(--velvet);font-size:11px;font-weight:600;pointer-events:none">QR</span>
+        <div id="qr-resize-handle" style="position:absolute;bottom:0;right:0;width:14px;height:14px;background:var(--velvet);border-radius:2px;cursor:se-resize"></div>
+      </div>
+    </div>
+  `;
+
+  preview._finalScale = finalScale;
+  window._flyerScale = finalScale;
+  window._flyerWidth = viewport.width;
+  window._flyerHeight = viewport.height;
+  initQRDrag();
+  return;
+}
+
+  const posX = parseInt(document.getElementById('flyer-x').value) || 100;
+  const posY = parseInt(document.getElementById('flyer-y').value) || 100;
+  const qrSize = parseInt(document.getElementById('flyer-size').value) || 300;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const previewW = preview.offsetWidth;
+      const finalScale = Math.min(previewW / img.width, 480 / img.height);
+      const imgW = img.width * finalScale;
+      const imgH = img.height * finalScale;
+
+      preview.innerHTML = `
+        <div style="position:relative;width:${imgW}px;height:${imgH}px;margin:0 auto" id="preview-container">
+          <img src="${e.target.result}" style="width:${imgW}px;height:${imgH}px;display:block;user-select:none">
+          <div id="qr-placeholder" style="position:absolute;left:${posX * finalScale}px;top:${posY * finalScale}px;width:${qrSize * finalScale}px;height:${qrSize * finalScale}px;border:3px solid var(--velvet);background:rgba(212,83,126,0.15);display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:move;user-select:none">
+            <span style="color:var(--velvet);font-size:11px;font-weight:600;pointer-events:none">QR</span>
+            <div id="qr-resize-handle" style="position:absolute;bottom:0;right:0;width:14px;height:14px;background:var(--velvet);border-radius:2px;cursor:se-resize"></div>
+          </div>
+        </div>
+      `;
+
+      preview._finalScale = finalScale;
+      window._flyerScale = finalScale;
+      window._flyerWidth = img.width;
+      window._flyerHeight = img.height;
+      initQRDrag();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+const initQRDrag = () => {
+  const qr = document.getElementById('qr-placeholder');
+  const handle = document.getElementById('qr-resize-handle');
+  const container = document.getElementById('preview-container');
+  if (!qr || !container) return;
+
+  const finalScale = window._flyerScale || 1;
+
+  qr.addEventListener('mousedown', (e) => {
+    if (e.target === handle) return;
+    qrDragging = true;
+    const rect = container.getBoundingClientRect();
+    dragStartX = e.clientX - rect.left - qr.offsetLeft;
+    dragStartY = e.clientY - rect.top - qr.offsetTop;
+    e.preventDefault();
+  });
+
+  handle.addEventListener('mousedown', (e) => {
+    qrResizing = true;
+    qrStartSize = qr.offsetWidth;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (qrDragging) {
+      const rect = container.getBoundingClientRect();
+      const newX = Math.max(0, Math.min(e.clientX - rect.left - dragStartX, container.offsetWidth - qr.offsetWidth));
+      const newY = Math.max(0, Math.min(e.clientY - rect.top - dragStartY, container.offsetHeight - qr.offsetHeight));
+      qr.style.left = `${newX}px`;
+      qr.style.top = `${newY}px`;
+      document.getElementById('flyer-x').value = Math.round(newX / finalScale);
+      document.getElementById('flyer-y').value = Math.round(newY / finalScale);
+    }
+    if (qrResizing) {
+      const diff = Math.max(e.clientX - dragStartX, e.clientY - dragStartY);
+      const newSize = Math.max(50, qrStartSize + diff);
+      qr.style.width = `${newSize}px`;
+      qr.style.height = `${newSize}px`;
+      document.getElementById('flyer-size').value = Math.round(newSize / finalScale);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    qrDragging = false;
+    qrResizing = false;
+  });
+};
+
+const assembleFlyers = async () => {
+  let file = document.getElementById('flyer-archivo').files[0];
+if (!file) return showAlert('Selecciona un flyer base');
+const isPDF = file.type === 'application/pdf';
+
+if (file.type === 'application/pdf') {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 2 });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  file = new File([blob], 'flyer.png', { type: 'image/png' });
+}
+
+const form = new FormData();
+form.append('flyer', file);
+  form.append('evento_id', document.getElementById('flyer-evento').value);
+  form.append('rrpp_id', document.getElementById('flyer-rrpp').value);
+  const scale = window._flyerScale || 1;
+const pdfScale = isPDF ? 2 : 1;
+form.append('pos_x', Math.round(parseInt(document.getElementById('flyer-x').value) * pdfScale));
+form.append('pos_y', Math.round(parseInt(document.getElementById('flyer-y').value) * pdfScale));
+form.append('qr_size', Math.round(parseInt(document.getElementById('flyer-size').value) * pdfScale));
+form.append('formato', document.getElementById('flyer-formato').value);
+  try {
+    const res = await fetch(`${API_URL}/api/flyer/insertar`, {
+      method: 'POST', headers: { 'Authorization': `Bearer ${api.token}` }, body: form
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'Flyers.zip'; a.click();
+    showAlert('Flyers montados correctamente', 'success');
+  } catch(e) { showAlert(e.message); }
+};
+
+const viewEventRanking = async (id, nombre) => {
+  try {
+    const data = await api.get(`/api/panel/jefe/evento/${id}`);
+    const ranking = data.ranking;
+    const html = `
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center" onclick="this.remove()">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:95%;max-width:1000px;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+          <div style="font-size:16px;font-weight:600;margin-bottom:16px">Ranking — ${escapeHtml(nombre)}</div>
+          <table>
+            <thead><tr><th>Pos</th><th>RRPP</th><th>Código</th><th>Flyers</th><th>Únicos</th><th>Totales</th><th>Físicos</th><th>Enlace</th><th>Tasa</th></tr></thead>
+            <tbody>
+              ${ranking.map((r,i) => `
+                <tr>
+                  <td><strong style="font-size:18px;color:${i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--text)'}">${i+1}</strong></td>
+                  <td><div style="display:flex;align-items:center;justify-content:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${getInitials(r.nombre)}</div>${escapeHtml(r.nombre)}</div></td>
+                  <td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px">${escapeHtml(r.codigo_descuento)}</code></td>
+		  <td>${r.total_qrs}</td>
+                  <td><strong>${r.flyers_activados}</strong></td>
+                  <td>${r.escaneos_validos}</td>
+                  <td>${r.escaneos_fisicos}</td>
+                  <td>${r.escaneos_enlace}</td>
+                  <td><strong style="color:var(--success)">${r.tasa_activacion}%</strong></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div style="text-align:right;margin-top:16px">
+            <button class="btn" onclick="document.body.lastElementChild.remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch(e) { showAlert(e.message); }
+};
+
+const downloadReport = (id) => {
+  window.open(`${API_URL}/api/informes/pdf/${id}?token=${api.token}`, '_blank');
+};
+
+const downloadCSV = (id) => {
+  window.open(`${API_URL}/api/informes/csv/${id}?token=${api.token}`, '_blank');
+};
+
+let currentEventFilter = 'todos';
+let adminEventsCache = [];
+let adminEventsOrder = { col: null, dir: 1 };
+
+const filterEvents = (filter) => {
+  currentEventFilter = filter;
+  document.querySelectorAll('[id^="filtro-"]').forEach(b => {
+    b.style.background = ''; b.style.color = ''; b.style.borderColor = '';
+  });
+  document.getElementById(`filtro-${filter}`).style.background = 'var(--velvet)';
+  document.getElementById(`filtro-${filter}`).style.color = 'white';
+  document.getElementById(`filtro-${filter}`).style.borderColor = 'var(--velvet)';
+
+  const query = (document.getElementById('buscar-evento-admin')?.value || '').toLowerCase();
+
+  let data = adminEventsCache.filter(e => {
+    const matchFilter = filter === 'todos' || e.estado === filter;
+    const matchQuery = e.nombre.toLowerCase().includes(query);
+    return matchFilter && matchQuery;
+  });
+
+  if (adminEventsOrder.col) {
+    data.sort((a, b) => {
+      const va = a[adminEventsOrder.col] ?? 0;
+      const vb = b[adminEventsOrder.col] ?? 0;
+      return typeof va === 'string'
+        ? va.localeCompare(vb) * adminEventsOrder.dir
+        : (va - vb) * adminEventsOrder.dir;
+    });
+  }
+
+  const arrow = (col) => adminEventsOrder.col === col ? (adminEventsOrder.dir === 1 ? ' ↑' : ' ↓') : '';
+
+  document.getElementById('tabla-eventos').innerHTML = data.length ? data.map(e => {
+    const roomColor = { velvet: '#D4537E', lemon: '#EFB827', zrrcus: '#E8732A' }[e.sala] || '#888';
+    return `
+    <tr style="background:none;border:none">
+      <td colspan="8" style="padding:0;border:none">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden">
+          <div style="height:4px;background:${roomColor}"></div>
+          <div style="padding:16px 20px">
+            <div style="text-align:center;margin-bottom:20px">
+              <div style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:10px">${escapeHtml(e.nombre)}</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+                ${roomBadge(e.sala)}
+                <span style="color:var(--text3);font-size:12px">📅 ${formatDate(e.fecha)}</span>
+                ${statusBadge(e.estado)}
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">RRPPs</div>
+                <div style="font-size:22px;font-weight:700;color:var(--text)">${e.total_rrpps || 0}</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">QRs</div>
+                <div style="font-size:22px;font-weight:700;color:${roomColor}">${e.total_qrs || 0}</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Escaneos</div>
+                <div style="font-size:22px;font-weight:700;color:var(--success)">${e.total_escaneos || 0}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+	      <button class="btn btn-sm" onclick="editEvent('${e.id}')">✏️ Editar</button>
+              <button class="btn btn-sm" onclick="viewEventRanking('${e.id}','${escapeHtml(e.nombre)}')">📊 Ranking</button>
+              <button class="btn btn-sm" onclick="openAssignModal('${e.id}')">👤 + RRPP</button>
+              <button class="btn btn-sm" onclick="downloadReport('${e.id}')">📄 PDF</button>
+              <button class="btn btn-sm" onclick="downloadCSV('${e.id}')">📊 CSV</button>
+              ${e.estado === 'activo' ? `<button class="btn btn-sm btn-danger" onclick="closeEvent('${e.id}','${escapeHtml(e.nombre)}')">🔒 Cerrar</button>` : ''}
+              ${e.estado === 'cerrado' ? `<button class="btn btn-sm btn-success" onclick="reopenEvent('${e.id}','${escapeHtml(e.nombre)}')">🔓 Reabrir</button>` : ''}
+              <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}','${escapeHtml(e.nombre)}')">🗑 Eliminar</button>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `}).join('') : '<tr><td colspan="8" class="empty">Sin eventos</td></tr>';
+
+  applyDataLabels();
+
+  document.querySelector('#page-eventos table thead tr').innerHTML = `
+    <th onclick="sortAdminEvents('nombre')" style="cursor:pointer">Nombre${arrow('nombre')}</th>
+    <th>Sala</th>
+    <th onclick="sortAdminEvents('fecha')" style="cursor:pointer">Fecha${arrow('fecha')}</th>
+    <th onclick="sortAdminEvents('total_rrpps')" style="cursor:pointer">RRPPs${arrow('total_rrpps')}</th>
+    <th onclick="sortAdminEvents('total_qrs')" style="cursor:pointer">QRs${arrow('total_qrs')}</th>
+    <th onclick="sortAdminEvents('total_escaneos')" style="cursor:pointer">Escaneos${arrow('total_escaneos')}</th>
+    <th>Estado</th>
+    <th>Acciones</th>
+  `;
+};
+
+const sortAdminEvents = (col) => {
+  if (adminEventsOrder.col === col) adminEventsOrder.dir *= -1;
+  else { adminEventsOrder.col = col; adminEventsOrder.dir = 1; }
+  filterEvents(currentEventFilter);
+};
+
+const loadSuspensions = async () => {
+  try {
+    const data = await api.get('/api/rrpps/suspensiones');
+    document.getElementById('tabla-suspensiones').innerHTML = data.length
+      ? data.map(r => `
+        <tr>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar">${getInitials(r.nombre)}</div>
+            ${escapeHtml(r.nombre)}
+          </div></td>
+          <td>@${escapeHtml(r.usuario)}</td>
+          <td>${r.bloqueado_permanente
+            ? '<span class="badge badge-danger">Bloqueado permanente</span>'
+            : '<span class="badge badge-warning">Suspendido 1h</span>'}</td>
+          <td>${r.suspension_hasta ? formatDateTime(r.suspension_hasta) : '—'}</td>
+          <td><button class="btn btn-sm btn-success" onclick="liftSanction('${r.id}')">Levantar sanción</button></td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="5" class="empty">Sin suspensiones activas</td></tr>';
+  } catch(e) { showAlert(e.message); }
+};
+
+const liftSanction = async (id) => {
+  try {
+    await api.post(`/api/rrpps/${id}/levantar-sancion`, {});
+    showAlert('Sanción levantada correctamente', 'success');
+    loadSuspensions();
+  } catch(e) { showAlert(e.message); }
+};
+
+const closeEvent = async (id, nombre) => {
+  if (!confirm(`¿Cerrar el evento "${nombre}"? Se guardará el histórico.`)) return;
+  try {
+    await api.post(`/api/eventos/${id}/cerrar`, {});
+    showAlert('Evento cerrado y histórico guardado', 'success');
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const reopenEvent = async (id, nombre) => {
+  if (!confirm(`¿Reabrir el evento "${nombre}"?`)) return;
+  try {
+    await api.put(`/api/eventos/${id}`, { estado: 'activo' });
+    showAlert('Evento reactivado correctamente', 'success');
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const searchAdminRRPPs = () => renderRRPPsTable();
+
+const deleteEvent = async (id, nombre) => {
+  if (!confirm(`¿Eliminar el evento "${nombre}" permanentemente? Esta acción no se puede deshacer.`)) return;
+  try {
+    await api.delete(`/api/eventos/${id}`);
+    showAlert('Evento eliminado correctamente', 'success');
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const deleteRRPP = async (id, nombre) => {
+  if (!confirm(`¿Eliminar a "${nombre}" permanentemente? Esta acción no se puede deshacer.`)) return;
+  try {
+    await api.delete(`/api/rrpps/${id}`);
+    showAlert('RRPP eliminado correctamente', 'success');
+    loadRRPPs();
+  } catch(e) { showAlert(e.message); }
+};
+
+const loadEventRRPPs = async (eventSelectId, rrppSelectId) => {
+  const eventId = document.getElementById(eventSelectId).value;
+  if (!eventId) return;
+  try {
+    const evento = await api.get(`/api/eventos/${eventId}`);
+    const rrpps = evento.rrpps || [];
+    document.getElementById(rrppSelectId).innerHTML = rrpps.length
+      ? rrpps.map(r => `<option value="${r.id}">${escapeHtml(r.nombre)}</option>`).join('')
+      : '<option value="">Sin RRPPs asignados</option>';
+  } catch(e) { showAlert(e.message); }
+};
+
+const deleteRRPPQRs = async (lote_id, nombre, cantidad) => {
+  if (!confirm(`¿Eliminar el lote de ${cantidad} QRs de ${nombre}?`)) return;
+  try {
+    await api.delete(`/api/qrs/lote/${lote_id}`);
+    showAlert('Lote eliminado correctamente', 'success');
+    loadQRHistory();
+    loadEvents();
+  } catch(e) { showAlert(e.message); }
+};
+
+const editEvent = async (id) => {
+  const evento = await api.get(`/api/eventos/${id}`);
+  editingEventId = id;
+  document.getElementById('modal-evento-titulo').textContent = 'Editar evento';
+  document.getElementById('ev-nombre').value = evento.nombre;
+  document.getElementById('ev-fecha').value = evento.fecha;
+  document.getElementById('ev-lugar').value = evento.lugar || '';
+  document.getElementById('ev-url').value = evento.url_monsterticket || '';
+  document.getElementById('ev-entradas').value = evento.entradas_restantes || '';
+  document.getElementById('ev-oferta').value = evento.oferta_expira || '';
+  document.getElementById('ev-umbral-n').value = evento.umbral_fraude_escaneos || 5;
+  document.getElementById('ev-umbral-m').value = evento.umbral_fraude_minutos || 2;
+  document.getElementById('ev-sala').value = evento.sala;
+  openModal('modal-evento');
+};
+
+const checkBlockedQRs = async () => {
+  try {
+    const blocked = await api.get('/api/qrs/bloqueados');
+    if (blocked.length === 0) return;
+
+    const html = `
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center" id="modal-bloqueados">
+        <div style="background:var(--bg2);border:2px solid var(--danger);border-radius:var(--radius);padding:28px;width:90%;max-width:700px;max-height:80vh;overflow-y:auto">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+            <span style="font-size:28px">🚨</span>
+            <div>
+              <div style="font-size:18px;font-weight:700;color:var(--danger)">QRs bloqueados por fraude</div>
+              <div style="font-size:13px;color:var(--text3)">${blocked.length} QR${blocked.length>1?'s':''} bloqueado${blocked.length>1?'s':''} pendiente${blocked.length>1?'s':''} de revisión</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>RRPP</th><th>Evento</th><th>Flyer</th><th>Escaneos</th><th>Sospechosos</th><th>Motivo</th><th>Acción</th></tr></thead>
+            <tbody>
+              ${blocked.map(q => `
+                <tr>
+                  <td>${escapeHtml(q.rrpp_nombre)}</td>
+                  <td>${escapeHtml(q.evento_nombre)}</td>
+                  <td>#${q.numero_flyer}</td>
+                  <td>${q.total_escaneos}</td>
+                  <td style="color:var(--danger);font-weight:700">${q.escaneos_sospechosos}</td>
+		  <td>${q.motivo === 'autoescaneo' ? '<span style="color:var(--danger);font-weight:700">⚠️ Autoescaneo</span>' : '<span style="color:var(--warning)">🔄 Reutilización</span>'}</td>
+                  <td><button class="btn btn-sm btn-success" onclick="unblockQR('${q.id}')">✅ Desbloquear</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div style="text-align:right;margin-top:20px">
+            <button class="btn" onclick="document.getElementById('modal-bloqueados').remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch(e) { console.error(e); }
+};
+
+const unblockQR = async (id) => {
+  try {
+    await api.post(`/api/qrs/desbloquear/${id}`, {});
+    showAlert('QR desbloqueado correctamente', 'success');
+    document.getElementById('modal-bloqueados')?.remove();
+    checkBlockedQRs();
+  } catch(e) { showAlert(e.message); }
+};
+
+const editRRPP = async (id) => {
+  const rrpp = await api.get(`/api/rrpps/${id}`);
+  const groups = await api.get('/api/rrpps/grupos/lista');
+
+  document.getElementById('edit-rp-id').value = id;
+  document.getElementById('edit-rp-nombre').value = rrpp.nombre;
+  document.getElementById('edit-rp-usuario').value = rrpp.usuario;
+  document.getElementById('edit-rp-password').value = '';
+  document.getElementById('edit-rp-email').value = rrpp.email || '';
+
+  const activeGroups = rrpp.grupos.map(g => g.id);
+  document.getElementById('edit-grupos-checkboxes').innerHTML = groups.map(g => `
+    <label style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;font-size:12px">
+      <input type="checkbox" value="${g.id}" style="accent-color:${g.color}" ${activeGroups.includes(g.id) ? 'checked' : ''}>
+      <span style="color:${g.color};font-weight:500">${escapeHtml(g.nombre)}</span>
+    </label>
+  `).join('');
+
+  openModal('modal-editar-rrpp');
+};
+
+const saveRRPPEdit = async () => {
+  const id = document.getElementById('edit-rp-id').value;
+  const password = document.getElementById('edit-rp-password').value;
+  const groups = [...document.querySelectorAll('#edit-grupos-checkboxes input:checked')].map(i => i.value);
+
+  const body = {
+    nombre: document.getElementById('edit-rp-nombre').value,
+    email: document.getElementById('edit-rp-email').value,
+    grupos: groups
+  };
+
+  try {
+    await api.put(`/api/rrpps/${id}`, body);
+    if (password) {
+      await api.put(`/api/rrpps/${id}/password`, { passwordNueva: password });
+    }
+    closeModal('modal-editar-rrpp');
+    showAlert('RRPP actualizado correctamente', 'success');
+    loadRRPPs();
+  } catch(e) { showAlert(e.message); }
+};
+
+const loadHistory = async () => {
+  try {
+    const events = await api.get('/api/eventos');
+    const closed = events.filter(e => e.estado === 'cerrado');
+
+    if (!closed.length) {
+      document.getElementById('historico-eventos-container').innerHTML = '<div class="card"><div class="empty">No hay eventos cerrados aún</div></div>';
+      return;
+    }
+
+    const html = closed.map(e => {
+      const roomColor = { velvet: '#D4537E', lemon: '#EFB827', zrrcus: '#E8732A' }[e.sala] || '#888';
+      return `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden">
+          <div style="height:4px;background:${roomColor}"></div>
+          <div style="padding:16px 20px">
+            <div style="text-align:center;margin-bottom:16px">
+              <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">${escapeHtml(e.nombre)}</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+                ${roomBadge(e.sala)}
+                <span style="color:var(--text3);font-size:12px">📅 ${formatDate(e.fecha)}</span>
+                <span class="badge badge-danger">Cerrado</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">RRPPs</div>
+                <div style="font-size:22px;font-weight:700;color:var(--text)">${e.total_rrpps || 0}</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">QRs</div>
+                <div style="font-size:22px;font-weight:700;color:${roomColor}">${e.total_qrs || 0}</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Escaneos</div>
+                <div style="font-size:22px;font-weight:700;color:var(--success)">${e.total_escaneos || 0}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+              <button class="btn btn-sm" onclick="viewEventRanking('${e.id}','${escapeHtml(e.nombre)}')">📊 Ranking final</button>
+              <button class="btn btn-sm" onclick="downloadReport('${e.id}')">📄 PDF</button>
+              <button class="btn btn-sm" onclick="downloadCSV('${e.id}')">📊 CSV</button>
+              <button class="btn btn-sm btn-success" onclick="reopenEvent('${e.id}','${escapeHtml(e.nombre)}')">🔓 Reabrir</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}','${escapeHtml(e.nombre)}')">🗑 Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('historico-eventos-container').innerHTML = html;
+  } catch(e) { showAlert(e.message); }
+};
+
+loadDashboard();
+checkBlockedQRs();
+</script>
+</body>
+</html>
